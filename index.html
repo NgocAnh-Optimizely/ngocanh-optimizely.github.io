@@ -3,12 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Product Homepage</title>
+  <title>SmartX Product Site</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       margin: 0;
-      padding: 0;
       background-color: #f4f4f4;
     }
     header {
@@ -17,24 +16,30 @@
       padding: 20px;
       text-align: center;
     }
-    .container {
+    nav {
+      background-color: #333;
+      overflow: hidden;
+    }
+    nav a {
+      float: left;
+      display: block;
+      color: white;
+      text-align: center;
+      padding: 14px 20px;
+      text-decoration: none;
+    }
+    nav a:hover {
+      background-color: #575757;
+    }
+    .tab-content {
+      display: none;
       padding: 40px;
+      background-color: white;
       max-width: 900px;
       margin: auto;
-      background-color: white;
     }
-    .product {
-      display: flex;
-      flex-direction: row;
-      gap: 20px;
-      align-items: center;
-    }
-    .product img {
-      width: 300px;
-      border-radius: 8px;
-    }
-    .product-description {
-      flex: 1;
+    .active {
+      display: block;
     }
     footer {
       text-align: center;
@@ -43,29 +48,54 @@
       margin-top: 40px;
     }
   </style>
+  <script>
+    function showTab(tabId) {
+      const tabs = document.querySelectorAll('.tab-content');
+      tabs.forEach(tab => tab.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+    }
+    window.onload = () => showTab('home');
+  </script>
 </head>
 <body>
   <header>
-    <h1>Welcome to Our Product Page</h1>
-    <p>Discover innovation and quality</p>
+    <h1>Welcome to SmartX</h1>
+    <p>Innovative tech for modern life</p>
   </header>
 
-  <div class="container">
-    <div class="product">
-      <img src="https://th.bing.com/th/id/R.6797ebeef6ac3f7926f095defe062ea2?rik=FzAg7sDXvm1SAA&pid=ImgRaw&r=0" alt="Product Image" />
-      <div class="product-description">
-        <h2>SmartX Watch Pro</h2>
-        <p>
-          The SmartX Watch Pro is your ultimate fitness and productivity companion. With a sleek design, long battery life, and advanced health tracking features, it helps you stay connected and in control — wherever you go.
-        </p>
-        <ul>
-          <li>Heart rate & sleep monitoring</li>
-          <li>Water-resistant up to 50m</li>
-          <li>7-day battery life</li>
-          <li>Compatible with iOS and Android</li>
-        </ul>
-      </div>
-    </div>
+  <nav>
+    <a href="#" onclick="showTab('home')">Home</a>
+    <a href="#" onclick="showTab('products')">Products</a>
+    <a href="#" onclick="showTab('about')">About</a>
+    <a href="#" onclick="showTab('contact')">Contact</a>
+  </nav>
+
+  <div id="home" class="tab-content active">
+    <h2>Home</h2>
+    <p>Welcome to SmartX, your destination for cutting-edge wearable technology and smart devices.</p>
+  </div>
+
+  <div id="products" class="tab-content">
+    <h2>Our Products</h2>
+    <h3>SmartX Watch Pro</h3>
+    <p>A sleek smartwatch with health tracking, long battery life, and seamless connectivity.</p>
+    <ul>
+      <li>Heart rate & sleep monitoring</li>
+      <li>Water-resistant up to 50m</li>
+      <li>7-day battery life</li>
+    </ul>
+  </div>
+
+  <div id="about" class="tab-content">
+    <h2>About Us</h2>
+    <p>SmartX is a technology company focused on creating smart, user-friendly devices that enhance everyday life.</p>
+  </div>
+
+  <div id="contact" class="tab-content">
+    <h2>Contact</h2>
+    <p>Email: support@smartx.com</p>
+    <p>Phone: +1 800 123 4567</p>
+    <p>Address: 123 Innovation Drive, Tech City</p>
   </div>
 
   <footer>
