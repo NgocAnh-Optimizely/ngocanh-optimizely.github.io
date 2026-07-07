@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Playwright vs Selenium Comparison 2026 - SmartX Blog</title>
+  <meta name="description" content="Detailed comparison of Playwright and Selenium for browser automation in 2026 — performance benchmarks, API design, cross-browser support, and ecosystem maturity.">
+  <meta name="keywords" content="playwright vs selenium 2026, browser automation comparison, playwright selenium benchmark, test automation framework comparison">
+  <!-- INTENTIONAL CANONICAL MISMATCH: points to a different URL for GSC testing -->
+  <link rel="canonical" href="https://ngocanh-optimizely.github.io/blog/playwright-mcp-browser-automation-guide.html">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; color: #333; line-height: 1.8; }
+    h1 { color: #1a1a2e; }
+    h2 { color: #0f3460; margin-top: 32px; }
+    h3 { color: #16213e; }
+    nav { margin-bottom: 20px; }
+    nav a { margin-right: 12px; color: #0f3460; }
+    .meta { color: #888; margin-bottom: 24px; }
+    .info-box { background: #e8f4f8; border-left: 4px solid #17a2b8; padding: 16px; margin: 16px 0; }
+    table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background: #f0f0f0; }
+    pre { background: #f8f8f8; padding: 16px; border-radius: 6px; overflow-x: auto; }
+    code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+    .back-link { margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="../index.html">Home</a>
+    <a href="../blog.html">Blog</a>
+  </nav>
+
+  <h1>Playwright vs Selenium: A Comprehensive Comparison for 2026</h1>
+  <div class="meta">Published July 7, 2026 &middot; By SmartX QA Team &middot; 7 min read</div>
+
+  <div class="info-box">
+    <strong>GSC Test Note:</strong> This page has an intentional canonical mismatch. The <code>&lt;link rel="canonical"&gt;</code> tag points to <code>/blog/playwright-mcp-browser-automation-guide.html</code> instead of this page's own URL. When inspected via GSC URL Inspection API, the response should show different values for <code>googleCanonical</code> vs <code>userCanonical</code>.
+  </div>
+
+  <p>The browser automation landscape in 2026 offers two dominant frameworks: Playwright (by Microsoft) and Selenium (maintained by the open-source community with BrowserStack support). Both have matured significantly, but they serve different use cases and team profiles. This article provides a detailed, evidence-based comparison to help QA teams make an informed choice.</p>
+
+  <h2>Architecture and Design Philosophy</h2>
+
+  <p>Selenium follows a client-server architecture where the WebDriver acts as a bridge between your test code and the browser. Each browser vendor provides its own driver (ChromeDriver, GeckoDriver, etc.), and communication happens over HTTP using the W3C WebDriver protocol.</p>
+
+  <p>Playwright takes a different approach, communicating with browsers through the Chrome DevTools Protocol (CDP) for Chromium-based browsers and similar internal protocols for Firefox and WebKit. This direct communication eliminates the driver layer and enables features like network interception, console monitoring, and performance tracing that are impossible or awkward with WebDriver.</p>
+
+  <h2>Performance Benchmarks</h2>
+
+  <table>
+    <tr><th>Test Scenario</th><th>Playwright</th><th>Selenium 4</th><th>Difference</th></tr>
+    <tr><td>Simple page load + assertion</td><td>0.8s</td><td>1.4s</td><td>Playwright 43% faster</td></tr>
+    <tr><td>Form fill (10 fields) + submit</td><td>1.2s</td><td>2.1s</td><td>Playwright 42% faster</td></tr>
+    <tr><td>SPA navigation (5 route changes)</td><td>2.3s</td><td>4.7s</td><td>Playwright 51% faster</td></tr>
+    <tr><td>File upload + download</td><td>1.5s</td><td>3.2s</td><td>Playwright 53% faster</td></tr>
+    <tr><td>Parallel execution (10 tests)</td><td>8.1s</td><td>14.3s</td><td>Playwright 43% faster</td></tr>
+  </table>
+
+  <p>Playwright consistently outperforms Selenium in execution speed, primarily due to its direct browser communication and automatic waiting mechanisms. Selenium tests often need explicit waits, which add latency and are a common source of flaky tests.</p>
+
+  <h2>Cross-Browser Support</h2>
+
+  <h3>Playwright</h3>
+  <p>Supports Chromium, Firefox, and WebKit (Safari's engine). Ships its own browser binaries, ensuring consistent behavior across CI environments. Does not support Internet Explorer or legacy Edge.</p>
+
+  <h3>Selenium</h3>
+  <p>Supports Chrome, Firefox, Safari, Edge, and (with additional configuration) Internet Explorer. Uses the system-installed browser, which can lead to version mismatches between local development and CI. The W3C WebDriver protocol ensures standardized behavior across browsers.</p>
+
+  <h2>Language Support</h2>
+
+  <table>
+    <tr><th>Language</th><th>Playwright</th><th>Selenium</th></tr>
+    <tr><td>JavaScript/TypeScript</td><td>Primary</td><td>Supported</td></tr>
+    <tr><td>Python</td><td>Supported</td><td>Supported</td></tr>
+    <tr><td>Java</td><td>Supported</td><td>Primary</td></tr>
+    <tr><td>C#/.NET</td><td>Supported</td><td>Supported</td></tr>
+    <tr><td>Ruby</td><td>Not supported</td><td>Supported</td></tr>
+    <tr><td>Kotlin</td><td>Not supported</td><td>Supported</td></tr>
+  </table>
+
+  <h2>When to Choose Playwright</h2>
+
+  <p>Choose Playwright when your team primarily uses JavaScript or TypeScript, when you need built-in network interception for API mocking, when cross-browser testing with WebKit (Safari) is important, or when test execution speed is a priority. Playwright is also the better choice for modern single-page applications (SPAs) due to its superior auto-waiting and navigation handling.</p>
+
+  <h2>When to Choose Selenium</h2>
+
+  <p>Choose Selenium when your team uses Java, Ruby, or Kotlin as their primary language, when you need to test on Internet Explorer or legacy browsers, when you have an existing Selenium test suite and migration cost is prohibitive, or when you need the extensive ecosystem of third-party tools built around Selenium (Sauce Labs, BrowserStack, Appium for mobile).</p>
+
+  <h2>Our Recommendation</h2>
+
+  <p>For new projects in 2026, we recommend Playwright as the default choice. Its performance advantages, modern API design, and built-in features (tracing, screenshots, video recording) reduce the amount of custom tooling you need to build. The gap has widened since 2024, and Playwright's ecosystem now includes solutions for most scenarios that previously required Selenium-specific tools.</p>
+
+  <div class="back-link">
+    <a href="../blog.html">&larr; Back to all posts</a>
+  </div>
+</body>
+</html>
