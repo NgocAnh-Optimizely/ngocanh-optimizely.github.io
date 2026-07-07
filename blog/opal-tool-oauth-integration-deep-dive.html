@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OAuth Integration Deep Dive for OCP Tool Apps - SmartX Blog</title>
+  <meta name="description" content="Understanding app-managed vs platform-managed OAuth in OCP tool apps — auth providers, scope bundles, token lifecycle, and QA testing strategies.">
+  <meta name="keywords" content="ocp oauth integration, opal tool auth provider, scope bundle configuration, platform managed oauth, ocp app authentication">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; color: #333; line-height: 1.8; }
+    h1 { color: #1a1a2e; }
+    h2 { color: #0f3460; margin-top: 32px; }
+    h3 { color: #16213e; }
+    nav { margin-bottom: 20px; }
+    nav a { margin-right: 12px; color: #0f3460; }
+    .meta { color: #888; margin-bottom: 24px; }
+    code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+    pre { background: #f8f8f8; padding: 16px; border-radius: 6px; overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background: #f0f0f0; }
+    blockquote { border-left: 4px solid #e94560; margin-left: 0; padding-left: 16px; color: #555; }
+    .back-link { margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="../index.html">Home</a>
+    <a href="../blog.html">Blog</a>
+  </nav>
+
+  <h1>OAuth Integration Deep Dive for OCP Tool Apps</h1>
+  <div class="meta">Published July 4, 2026 &middot; By SmartX QA Team &middot; 8 min read</div>
+
+  <p>Optimizely's OCP (Open Commerce Platform) supports two fundamentally different OAuth patterns for tool apps. Understanding the distinction between app-managed and platform-managed OAuth is critical for QA engineers testing third-party integrations through the Opal conversational interface.</p>
+
+  <h2>Two OAuth Architectures</h2>
+
+  <p>When an OCP tool app needs to access a third-party API on behalf of a user, it must obtain OAuth tokens. How those tokens are obtained, stored, and refreshed defines the app's authentication architecture.</p>
+
+  <table>
+    <tr><th>Aspect</th><th>App-Managed OAuth</th><th>Platform-Managed (Opal) OAuth</th></tr>
+    <tr><td>Example apps</td><td>GA4, Google Ads</td><td>Google Search Console, Zoom</td></tr>
+    <tr><td>Token storage</td><td>App stores in <code>storage.secrets</code></td><td>Opal platform stores centrally</td></tr>
+    <tr><td>Token refresh</td><td>App handles refresh logic</td><td>Platform refreshes automatically</td></tr>
+    <tr><td>QA setup location</td><td>App Settings page in OCP</td><td>Opal Connectors tab</td></tr>
+    <tr><td>Auth Provider needed</td><td>No</td><td>Yes (platform must register)</td></tr>
+    <tr><td><code>ready()</code> endpoint</td><td>Validates stored token</td><td>Always returns <code>true</code></td></tr>
+    <tr><td>Credential input</td><td>Client ID + Secret in app form</td><td>Configured globally by admin</td></tr>
+  </table>
+
+  <h2>App-Managed OAuth in Detail</h2>
+
+  <p>With app-managed OAuth, the tool app contains all the authentication logic. The app defines a settings form (<code>forms/settings.xml</code>) where users enter their OAuth Client ID and Client Secret. When the user clicks "Connect", the app's lifecycle handler (<code>onAuthorizationRequest</code>) initiates the OAuth flow, and the resulting tokens are stored in <code>storage.secrets</code>.</p>
+
+  <p>The app's <code>ready()</code> endpoint checks whether valid tokens exist in storage. If tokens are expired or missing, <code>ready()</code> returns <code>false</code>, and Opal prompts the user to re-authorize.</p>
+
+  <pre><code>// App-managed ready() — validates token
+async ready(): Promise&lt;ReadyResponse&gt; {
+  const secrets = await this.storage.secrets.get();
+  if (!secrets?.access_token) {
+    return { ready: false, reason: 'Not connected. Please authorize in Settings.' };
+  }
+  return { ready: true };
+}</code></pre>
+
+  <h2>Platform-Managed OAuth in Detail</h2>
+
+  <p>With platform-managed OAuth, the app declares its authentication requirements but does not handle tokens at all. The Opal platform manages the entire OAuth lifecycle — from the initial authorization flow to token storage and refresh.</p>
+
+  <p>The app declares <code>authRequirements</code> in each tool's configuration, specifying which Auth Provider and Scope Bundle it needs. When the tool is invoked, Opal checks if the user has an active connection for that provider and scope. If yes, Opal injects a fresh access token into the tool's <code>authData</code> parameter. If no, Opal prompts the user to connect.</p>
+
+  <pre><code>// Platform-managed authRequirements declaration
+export const gscAuthRequirements = [
+  {
+    provider: 'opal_tool_google_search_console',
+    scopeBundle: 'search_console',
+    required: true,
+  },
+];
+
+// Platform-managed ready() — always true
+async ready(): Promise&lt;ReadyResponse&gt; {
+  return { ready: true };
+}</code></pre>
+
+  <h2>Auth Providers and Scope Bundles</h2>
+
+  <p>For platform-managed OAuth, two entities must be configured on the Opal platform before the app can authenticate users.</p>
+
+  <h3>Auth Provider</h3>
+
+  <p>An Auth Provider represents a third-party OAuth service (Google, Microsoft, Zoom, etc.). It contains the OAuth configuration: authorization URL, token URL, revoke URL, and the OAuth client credentials (Client ID and Secret). Auth Providers are global — one provider can serve multiple apps.</p>
+
+  <h3>Scope Bundle</h3>
+
+  <p>A Scope Bundle maps a logical capability name to specific OAuth scopes. For example, the <code>search_console</code> scope bundle maps to Google's <code>https://www.googleapis.com/auth/webmasters</code> scope. The bundle name must exactly match what the app declares in its <code>authRequirements</code>.</p>
+
+  <blockquote>The most common QA failure we encounter is a scope bundle name mismatch. The app code declares <code>scopeBundle: 'search_console'</code> but the platform has a bundle named <code>gsc_access</code>. The OAuth flow completes but tools fail because Opal cannot find the matching scope bundle for the app's request.</blockquote>
+
+  <h2>QA Testing Strategies by OAuth Type</h2>
+
+  <h3>Testing App-Managed OAuth</h3>
+
+  <p>For app-managed OAuth, focus on the settings form and token lifecycle. Verify that credentials entered in the settings form are correctly stored in <code>storage.secrets</code>. Test the OAuth redirect flow — enter credentials, click connect, complete Google login, verify redirect back to the app. Test token expiry by waiting or manually revoking the token, then verifying that <code>ready()</code> returns false and the app prompts for re-authorization.</p>
+
+  <h3>Testing Platform-Managed OAuth</h3>
+
+  <p>For platform-managed OAuth, focus on the Connectors tab flow and the auth provider configuration. Verify that the connector appears in the Connectors tab (feature flag may need to be enabled). Test the connect flow — click Connect, complete OAuth, verify Connected status. Test that the app receives valid <code>authData</code> by invoking a tool and checking the response. Test token revocation by revoking access in Google Account settings and verifying the app returns a clear error, not a crash.</p>
+
+  <h2>Common QA Pitfalls</h2>
+
+  <p>We have documented the most frequent issues our QA team encounters when testing OAuth integrations. Wrong redirect URI is the number one cause of OAuth failures — each environment (staging, integration, production) has a different redirect URI pattern. Missing API enablement on the GCP project causes cryptic 403 errors after a successful OAuth flow. Test user limitations in GCP Testing mode mean tokens expire after 7 days, causing sudden test failures.</p>
+
+  <div class="back-link">
+    <a href="../blog.html">&larr; Back to all posts</a>
+  </div>
+</body>
+</html>

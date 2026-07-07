@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CDP Audience Sync Testing Patterns and Anti-Patterns - SmartX Blog</title>
+  <meta name="description" content="How to test CDP audience syncs across 20+ integration channels including Braze, Klaviyo, Facebook Custom Audiences, and Salesforce Data Cloud.">
+  <meta name="keywords" content="cdp audience sync testing, customer data platform qa, braze klaviyo integration test, facebook custom audiences testing, cdp integration patterns">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; color: #333; line-height: 1.8; }
+    h1 { color: #1a1a2e; }
+    h2 { color: #0f3460; margin-top: 32px; }
+    h3 { color: #16213e; }
+    nav { margin-bottom: 20px; }
+    nav a { margin-right: 12px; color: #0f3460; }
+    .meta { color: #888; margin-bottom: 24px; }
+    code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+    pre { background: #f8f8f8; padding: 16px; border-radius: 6px; overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background: #f0f0f0; }
+    .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px; margin: 16px 0; }
+    .back-link { margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="../index.html">Home</a>
+    <a href="../blog.html">Blog</a>
+  </nav>
+
+  <h1>CDP Audience Sync Testing Patterns and Anti-Patterns</h1>
+  <div class="meta">Published July 5, 2026 &middot; By SmartX QA Team &middot; 6 min read</div>
+
+  <p>Customer Data Platforms sit at the center of the marketing technology stack, connecting customer profiles to dozens of downstream activation channels. Testing audience syncs across these channels is one of the most complex QA challenges in the martech space because each integration has its own API semantics, rate limits, and data format requirements.</p>
+
+  <h2>The Anatomy of an Audience Sync</h2>
+
+  <p>At its core, an audience sync moves customer identifiers from the CDP to a destination platform. A customer qualifies for an audience segment based on behavioral or demographic criteria, and the CDP sends that qualification event to the connected channel. The flow looks deceptively simple:</p>
+
+  <pre><code>Customer qualifies for segment
+  → CDP evaluates rules
+  → Sync job created
+  → API call to destination (Braze, Klaviyo, Facebook, etc.)
+  → Destination confirms receipt
+  → CDP updates sync status</code></pre>
+
+  <p>The complexity lies in the variations. Each destination handles qualifications differently. Some accept batch API calls with hundreds of users per request. Others require individual API calls per user. Some use email as the primary identifier, others use phone numbers, advertising IDs, or proprietary user IDs.</p>
+
+  <h2>Testing Patterns That Work</h2>
+
+  <h3>Pattern 1: Qualify-Verify-Disqualify Cycle</h3>
+
+  <p>The most fundamental test pattern for any audience sync is the full lifecycle test. Qualify a known test user for an audience, verify they appear in the destination, then disqualify them and verify removal.</p>
+
+  <pre><code>// 1. Qualify
+POST /v3/audiences/{audience_id}/qualify
+{ "identifiers": { "email": "test@example.com" } }
+
+// 2. Wait for sync propagation (varies by channel)
+await sleep(30000);  // 30 seconds for most real-time channels
+
+// 3. Verify in destination
+// Braze: GET /users/export/ids
+// Klaviyo: GET /api/profiles/?filter=equals(email,"test@example.com")
+// Facebook: Check Custom Audience size
+
+// 4. Disqualify
+POST /v3/audiences/{audience_id}/disqualify
+{ "identifiers": { "email": "test@example.com" } }
+
+// 5. Verify removal</code></pre>
+
+  <h3>Pattern 2: Batch Size Boundary Testing</h3>
+
+  <p>Most destination APIs have batch size limits. Testing at these boundaries catches issues that single-user tests miss. Send exactly the maximum batch size, then one more than the maximum to verify the sync correctly splits into multiple API calls.</p>
+
+  <table>
+    <tr><th>Destination</th><th>Max Batch Size</th><th>Test With</th></tr>
+    <tr><td>Braze</td><td>75 users/request</td><td>75, 76, 150 users</td></tr>
+    <tr><td>Klaviyo</td><td>100 profiles/request</td><td>100, 101, 200 users</td></tr>
+    <tr><td>Facebook</td><td>10,000 users/request</td><td>10000, 10001 users</td></tr>
+    <tr><td>Salesforce MC</td><td>50 contacts/request</td><td>50, 51, 100 users</td></tr>
+  </table>
+
+  <h3>Pattern 3: Identifier Resolution Testing</h3>
+
+  <p>CDPs often need to match customer identifiers between systems. A customer might be identified by email in the CDP but by phone number in the destination. Testing identifier resolution ensures the sync maps identifiers correctly and handles cases where no match exists.</p>
+
+  <h2>Anti-Patterns to Avoid</h2>
+
+  <div class="warning">
+    <strong>Anti-Pattern: Testing only with synthetic data.</strong> Synthetic identifiers like "test@test.com" may not exercise the same code paths as real-format data. Use realistic but fake identifiers (e.g., properly formatted but non-existent email addresses).
+  </div>
+
+  <h3>Anti-Pattern: Ignoring Rate Limits</h3>
+
+  <p>Every third-party API has rate limits, and sync implementations must respect them. A common testing mistake is running batch tests too quickly, hitting rate limits, and then blaming the sync implementation for failures that are actually infrastructure constraints.</p>
+
+  <h3>Anti-Pattern: Checking Only the Happy Path</h3>
+
+  <p>Many teams test that a qualified user appears in the destination but never test that a disqualified user is removed. Audience cleanup is as important as audience building — an audience that only grows but never shrinks leads to wasted ad spend and irrelevant messaging.</p>
+
+  <h2>Channel-Specific Considerations</h2>
+
+  <p>Each integration channel brings unique testing challenges. Facebook Custom Audiences requires hashing email addresses with SHA-256 before sending. Google Ads Customer Match has minimum audience size requirements (1,000 users for Search, 100 for YouTube). Salesforce Data Cloud requires specific consent metadata alongside profile data.</p>
+
+  <p>Building a comprehensive test matrix that covers all channel-specific requirements is essential. We maintain a living document that maps each channel to its required identifiers, batch limits, propagation delays, and known quirks.</p>
+
+  <div class="back-link">
+    <a href="../blog.html">&larr; Back to all posts</a>
+  </div>
+</body>
+</html>

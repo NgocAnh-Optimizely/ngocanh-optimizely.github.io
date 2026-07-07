@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Building an AI-Powered QA Workflow with Claude Code - SmartX Blog</title>
+  <meta name="description" content="How a QA team uses Claude Code plugins to analyze JIRA tickets, generate test cases, execute browser tests, and create bug reports from the terminal.">
+  <meta name="keywords" content="claude code qa workflow, ai powered testing, claude code plugins qa, automated test generation claude, ai bug detection workflow">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; color: #333; line-height: 1.8; }
+    h1 { color: #1a1a2e; }
+    h2 { color: #0f3460; margin-top: 32px; }
+    h3 { color: #16213e; }
+    nav { margin-bottom: 20px; }
+    nav a { margin-right: 12px; color: #0f3460; }
+    .meta { color: #888; margin-bottom: 24px; }
+    code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+    pre { background: #f8f8f8; padding: 16px; border-radius: 6px; overflow-x: auto; }
+    blockquote { border-left: 4px solid #e94560; margin-left: 0; padding-left: 16px; color: #555; }
+    .workflow-step { background: #f8f9fa; border-radius: 8px; padding: 16px; margin: 12px 0; border-left: 4px solid #0f3460; }
+    .workflow-step h4 { margin-top: 0; color: #0f3460; }
+    .back-link { margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="../index.html">Home</a>
+    <a href="../blog.html">Blog</a>
+  </nav>
+
+  <h1>Building an AI-Powered QA Workflow with Claude Code</h1>
+  <div class="meta">Published July 2, 2026 &middot; By SmartX QA Team &middot; 6 min read</div>
+
+  <p>Our QA team processes 40-60 JIRA tickets per sprint across multiple product areas — from CDP integrations and tool apps to core platform features. Each ticket requires understanding the change, designing test cases, executing them, and reporting results. We built an AI-powered workflow using Claude Code plugins that reduces the time from ticket assignment to test execution by 70%.</p>
+
+  <h2>The End-to-End Workflow</h2>
+
+  <p>Our workflow consists of five connected stages, each powered by a specialized Claude Code plugin skill. The output of each stage feeds into the next, creating a pipeline from ticket analysis to bug reporting.</p>
+
+  <div class="workflow-step">
+    <h4>Stage 1: Ticket Analysis</h4>
+    <p>When a QA engineer picks up a ticket, they run the analysis skill. This skill reads the JIRA ticket description, comments, linked PRs, and attachments in parallel. It identifies the affected component, loads domain-specific knowledge, and produces a structured analysis that classifies the change type and identifies the scope of testing needed.</p>
+    <p>The key innovation is that the analysis skill understands domain context. It knows which third-party APIs are involved, what authentication patterns the app uses, and what the typical failure modes are for each component.</p>
+  </div>
+
+  <div class="workflow-step">
+    <h4>Stage 2: Test Case Generation</h4>
+    <p>Based on the analysis, the test generation skill creates prioritized test cases. P0 cases cover the acceptance criteria directly. P1 cases test related functionality. P2 cases cover edge cases discovered from PR code review. P3 cases check for regressions in adjacent features. Each test case includes specific test steps, test data, and expected results — not vague descriptions.</p>
+  </div>
+
+  <div class="workflow-step">
+    <h4>Stage 3: Test Execution</h4>
+    <p>Test cases are executed either manually or through browser automation. For automation-friendly scenarios (form fills, navigation flows, API verification), the execution skill uses Playwright MCP to drive a browser against the staging environment. It takes snapshots at each step and compares actual results against expected results from the test cases.</p>
+  </div>
+
+  <div class="workflow-step">
+    <h4>Stage 4: Bug Detection and Reporting</h4>
+    <p>When a test case fails, the bug detection skill analyzes the failure. It captures screenshots, console errors, and network requests at the point of failure. It then creates a JIRA bug ticket with reproduction steps derived from the test execution log, screenshots embedded as attachments, and the bug linked to the original development ticket.</p>
+  </div>
+
+  <div class="workflow-step">
+    <h4>Stage 5: Regression Analysis</h4>
+    <p>For automated test suites, we run periodic regression analysis that compares test results across builds. The analysis skill reads Allure test reports from CI, identifies newly failing tests, classifies them as environment issues vs actual bugs, and finds the likely root-cause PR by correlating test failures with recent code changes.</p>
+  </div>
+
+  <h2>What Makes This Different from Traditional Automation</h2>
+
+  <p>Traditional test automation requires writing and maintaining test scripts — a significant engineering investment. Our approach is different in a fundamental way: the AI generates test cases dynamically from ticket context, not from pre-written scripts. This means coverage automatically adapts to what's being developed.</p>
+
+  <blockquote>"We stopped maintaining a static test case repository. Every ticket gets fresh, contextual test cases generated from its specific changes. The AI reads the PR diff, understands what changed, and tests accordingly." — SmartX QA Engineer</blockquote>
+
+  <p>The tradeoff is that AI-generated tests require human review before being trusted as the sole verification. We treat AI-generated P0 test cases as mandatory review items — a human must verify the assertions make sense before the ticket can be closed.</p>
+
+  <h2>Metrics and Impact</h2>
+
+  <p>After six months of using this workflow, our team has observed significant improvements. Time from ticket assignment to first test execution decreased from an average of 1.5 days to 3 hours. Test case coverage (measured by acceptance criteria coverage) increased from 85% to 97%. Bug escape rate for tickets that went through the AI workflow dropped to 2.3%, compared to 8.7% for tickets tested manually without AI assistance.</p>
+
+  <p>The biggest qualitative improvement is consistency. Every ticket, regardless of which QA engineer handles it, gets the same depth of analysis. The AI does not forget to check error handling, does not skip edge cases due to time pressure, and does not make assumptions about what "probably works fine."</p>
+
+  <h2>Limitations and Honest Assessment</h2>
+
+  <p>This workflow is not a silver bullet. AI-generated test cases sometimes miss subtle business logic that requires deep domain expertise. The browser automation occasionally fails on complex UI interactions (drag-and-drop, canvas elements, iframe-heavy pages). And the entire workflow assumes good JIRA ticket hygiene — poorly written tickets with vague acceptance criteria produce poor test cases.</p>
+
+  <p>We view this as augmentation, not replacement. The AI handles the 70% of testing work that is systematic and mechanical. Human QA engineers focus on the 30% that requires creativity, intuition, and deep product knowledge.</p>
+
+  <div class="back-link">
+    <a href="../blog.html">&larr; Back to all posts</a>
+  </div>
+</body>
+</html>

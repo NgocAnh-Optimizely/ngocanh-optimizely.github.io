@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Search Console API Testing Checklist - SmartX Blog</title>
+  <meta name="description" content="Comprehensive testing checklist for Google Search Console API integrations covering search analytics, URL inspection, sitemaps, and data reporting edge cases.">
+  <meta name="keywords" content="google search console api testing, gsc api checklist, search analytics api test, url inspection api testing, sitemap api verification">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; color: #333; line-height: 1.8; }
+    h1 { color: #1a1a2e; }
+    h2 { color: #0f3460; margin-top: 32px; }
+    h3 { color: #16213e; }
+    nav { margin-bottom: 20px; }
+    nav a { margin-right: 12px; color: #0f3460; }
+    .meta { color: #888; margin-bottom: 24px; }
+    code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+    pre { background: #f8f8f8; padding: 16px; border-radius: 6px; overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background: #f0f0f0; }
+    .check { color: #27ae60; }
+    .cross { color: #e74c3c; }
+    .back-link { margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="../index.html">Home</a>
+    <a href="../blog.html">Blog</a>
+  </nav>
+
+  <h1>Google Search Console API Testing Checklist</h1>
+  <div class="meta">Published July 3, 2026 &middot; By SmartX QA Team &middot; 5 min read</div>
+
+  <p>Google Search Console provides four main API endpoints for programmatic access to search data. Each endpoint has unique testing requirements that go beyond simple success/failure checks. This checklist covers the critical test scenarios for each API, including edge cases that are easy to miss.</p>
+
+  <h2>API 1: Search Analytics (searchAnalytics.query)</h2>
+
+  <p>The Search Analytics API is the most complex GSC endpoint. It accepts numerous parameters including date ranges, dimensions, filters, and row limits. A thorough test plan must cover parameter combinations, not just individual parameters.</p>
+
+  <h3>Required Parameter Tests</h3>
+
+  <table>
+    <tr><th>Test</th><th>Input</th><th>Expected</th></tr>
+    <tr><td>Valid date range</td><td>Last 7 days, YYYY-MM-DD format</td><td>Returns rows with clicks, impressions, CTR, position</td></tr>
+    <tr><td>Reversed date range</td><td>start_date > end_date</td><td>400 error from Google</td></tr>
+    <tr><td>Future date range</td><td>Next month</td><td>Empty rows (no data yet)</td></tr>
+    <tr><td>Very old date range</td><td>5+ years ago</td><td>Empty rows (data retention limit: 16 months)</td></tr>
+    <tr><td>Invalid date format</td><td>MM/DD/YYYY instead of YYYY-MM-DD</td><td>400 error</td></tr>
+  </table>
+
+  <h3>Dimension Tests</h3>
+
+  <p>Dimensions control how data is grouped. The API supports: query, page, country, device, searchAppearance, and date. Each dimension changes the response structure — the <code>keys</code> array in each row matches the requested dimensions.</p>
+
+  <table>
+    <tr><th>Dimension</th><th>Verify</th></tr>
+    <tr><td><code>query</code></td><td>keys[0] = search query string</td></tr>
+    <tr><td><code>page</code></td><td>keys[0] = full URL</td></tr>
+    <tr><td><code>device</code></td><td>keys[0] = MOBILE, DESKTOP, or TABLET</td></tr>
+    <tr><td><code>country</code></td><td>keys[0] = 3-letter country code (ISO 3166-1 alpha-3)</td></tr>
+    <tr><td><code>date</code></td><td>keys[0] = YYYY-MM-DD</td></tr>
+    <tr><td><code>query,page</code> (multi)</td><td>keys[0] = query, keys[1] = page URL</td></tr>
+  </table>
+
+  <h3>Filter Tests</h3>
+
+  <p>Filters narrow results without changing the grouping. Each filter specifies a dimension, operator (contains, equals, notContains, notEquals, includingRegex, excludingRegex), and expression.</p>
+
+  <pre><code>// Filter by page URL containing "/blog/"
+{ "dimension": "page", "operator": "contains", "expression": "/blog/" }
+
+// Filter by country equals USA
+{ "dimension": "country", "operator": "equals", "expression": "USA" }
+
+// Regex filter for queries starting with "how to"
+{ "dimension": "query", "operator": "includingRegex", "expression": "^how to" }</code></pre>
+
+  <h2>API 2: URL Inspection (urlInspection.index.inspect)</h2>
+
+  <p>The URL Inspection API provides indexing status for a specific URL. Key response fields to verify include verdict (PASS, FAIL, NEUTRAL), coverageState, robotsTxtState, indexingState, lastCrawlTime, and canonical URL comparison.</p>
+
+  <table>
+    <tr><th>Scenario</th><th>Expected Verdict</th><th>Key Fields</th></tr>
+    <tr><td>Well-indexed page</td><td>PASS</td><td>coverageState: "Submitted and indexed"</td></tr>
+    <tr><td>Page with noindex tag</td><td>NEUTRAL or FAIL</td><td>indexingState: "Blocked by 'noindex'"</td></tr>
+    <tr><td>URL not under property</td><td>Error 403</td><td>URL must belong to verified property</td></tr>
+    <tr><td>Non-existent URL</td><td>NEUTRAL</td><td>coverageState: "URL is not on Google"</td></tr>
+  </table>
+
+  <h2>API 3: Sitemaps (sitemaps.list / sitemaps.submit)</h2>
+
+  <p>The Sitemaps API has two operations: listing submitted sitemaps and submitting new ones. The list operation returns metadata about each sitemap including error counts, submission dates, and content type breakdowns (web, image, video, news).</p>
+
+  <h3>Key Assertions for sitemap.list</h3>
+
+  <p>For each sitemap entry, verify: path (full URL), lastSubmitted (ISO timestamp), lastDownloaded (when Google last fetched it), isPending (boolean), isSitemapsIndex (boolean), errors (count), warnings (count), and contents array with type/submitted/indexed counts.</p>
+
+  <h3>Submit Sitemap Tests</h3>
+
+  <table>
+    <tr><th>Scenario</th><th>Expected</th></tr>
+    <tr><td>Submit valid sitemap.xml</td><td>204 No Content (success)</td></tr>
+    <tr><td>Resubmit existing sitemap</td><td>204 (allows resubmission for re-crawl)</td></tr>
+    <tr><td>Submit invalid URL (not under property)</td><td>Error</td></tr>
+    <tr><td>Submit non-existent sitemap file</td><td>Accepted but will show errors in GSC later</td></tr>
+  </table>
+
+  <h2>API 4: Sites (sites.list)</h2>
+
+  <p>The simplest API — returns all Search Console properties the authenticated user has access to. Each entry includes siteUrl and permissionLevel (siteOwner, siteFullUser, siteRestrictedUser, siteUnverifiedUser).</p>
+
+  <p>Test with accounts that have multiple properties at different permission levels. Verify that the permission level matches what's configured in GSC web UI. Test with an account that has no properties — should return an empty array, not an error.</p>
+
+  <h2>Cross-Cutting Concerns</h2>
+
+  <p>Regardless of which API you're testing, several concerns apply across all endpoints. Data freshness: GSC data has a 2-3 day delay for finalized data. Using <code>data_state: "all"</code> returns fresher but potentially incomplete data. Property format: both URL-prefix (<code>https://example.com/</code>) and domain (<code>sc-domain:example.com</code>) formats must be tested. Rate limiting: the API enforces quotas per project — tests must handle 429 responses gracefully.</p>
+
+  <div class="back-link">
+    <a href="../blog.html">&larr; Back to all posts</a>
+  </div>
+</body>
+</html>

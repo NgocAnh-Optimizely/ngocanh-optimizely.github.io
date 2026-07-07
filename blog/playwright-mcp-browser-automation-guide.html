@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Complete Guide to Playwright MCP Browser Automation - SmartX Blog</title>
+  <meta name="description" content="Practical guide to Playwright MCP browser automation for QA testing — setup, interaction patterns, snapshot navigation, and real-world examples.">
+  <meta name="keywords" content="playwright mcp automation, browser testing mcp, model context protocol playwright, semantic browser automation, qa browser testing">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; color: #333; line-height: 1.8; }
+    h1 { color: #1a1a2e; }
+    h2 { color: #0f3460; margin-top: 32px; }
+    h3 { color: #16213e; }
+    nav { margin-bottom: 20px; }
+    nav a { margin-right: 12px; color: #0f3460; }
+    .meta { color: #888; margin-bottom: 24px; }
+    code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+    pre { background: #f8f8f8; padding: 16px; border-radius: 6px; overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background: #f0f0f0; }
+    .back-link { margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="../index.html">Home</a>
+    <a href="../blog.html">Blog</a>
+  </nav>
+
+  <h1>Complete Guide to Playwright MCP Browser Automation</h1>
+  <div class="meta">Published July 6, 2026 &middot; By SmartX QA Team &middot; 7 min read</div>
+
+  <p>Browser automation has traditionally required writing scripts with explicit selectors — CSS selectors, XPaths, or data-test attributes. The Model Context Protocol (MCP) introduces a fundamentally different paradigm where test agents interact with web pages through semantic descriptions rather than DOM selectors.</p>
+
+  <h2>What Is Playwright MCP?</h2>
+
+  <p>Playwright MCP is a server that exposes browser automation capabilities through the Model Context Protocol. Instead of writing <code>page.click('#submit-btn')</code>, you describe what you want to interact with: <code>browser_click({ target: 'Submit button' })</code>. The MCP server uses the page's accessibility tree to resolve your description to the correct element.</p>
+
+  <p>This approach offers several advantages for QA automation. Tests become more resilient to UI refactoring because they don't depend on implementation details like CSS classes or element IDs. They also read more like natural language test steps, making them easier for non-technical stakeholders to review.</p>
+
+  <h2>Core Interaction Patterns</h2>
+
+  <h3>Navigation and Snapshots</h3>
+
+  <p>Every interaction starts with understanding the current page state. The <code>browser_snapshot</code> tool captures the accessibility tree — a structured representation of all interactive elements on the page. Each element gets a unique reference that you can use in subsequent actions.</p>
+
+  <pre><code>// Take a snapshot to see what's on the page
+browser_snapshot()
+
+// Navigate to a URL
+browser_navigate({ url: 'https://staging.example.com/login' })
+
+// Wait for specific content to appear
+browser_wait_for({ text: 'Welcome back' })</code></pre>
+
+  <h3>Form Interaction</h3>
+
+  <p>Filling forms is one of the most common testing tasks. Playwright MCP supports bulk form filling, which is faster and more reliable than filling fields one at a time.</p>
+
+  <pre><code>// Fill multiple form fields at once
+browser_fill_form({
+  fields: [
+    { target: 'Email input', name: 'email', type: 'textbox', value: 'test@example.com' },
+    { target: 'Password input', name: 'password', type: 'textbox', value: 'SecureP@ss123' },
+    { target: 'Remember me checkbox', name: 'remember', type: 'checkbox', value: 'true' }
+  ]
+})</code></pre>
+
+  <h3>Assertions via Snapshots</h3>
+
+  <p>Instead of traditional assertions like <code>expect(element).toHaveText()</code>, MCP-based tests verify state by taking snapshots and examining the accessibility tree. This is more holistic — you see the entire page state, not just the element you're checking.</p>
+
+  <h2>Comparison with Traditional Playwright</h2>
+
+  <table>
+    <tr><th>Aspect</th><th>Traditional Playwright</th><th>Playwright MCP</th></tr>
+    <tr><td>Selector type</td><td>CSS, XPath, data-test</td><td>Semantic description</td></tr>
+    <tr><td>Maintenance</td><td>High (selectors break)</td><td>Low (semantic resilience)</td></tr>
+    <tr><td>Readability</td><td>Code-heavy</td><td>Natural language</td></tr>
+    <tr><td>Speed</td><td>Faster (direct DOM)</td><td>Slightly slower (a11y tree lookup)</td></tr>
+    <tr><td>Debugging</td><td>Playwright Inspector</td><td>Snapshot output</td></tr>
+    <tr><td>Best for</td><td>Performance-critical suites</td><td>Exploratory, adaptive tests</td></tr>
+  </table>
+
+  <h2>Real-World Example: Testing an OAuth Flow</h2>
+
+  <p>One of the trickiest automation scenarios is OAuth flows, where you navigate across multiple domains (your app, Google/Microsoft login, consent screen, redirect back). Here's how we handle it with MCP:</p>
+
+  <pre><code>// 1. Start on app's connection page
+browser_navigate({ url: 'https://staging.app.com/connectors' })
+
+// 2. Click the connect button
+browser_click({ target: 'Connect Google Search Console button' })
+
+// 3. Google OAuth page loads — wait for it
+browser_wait_for({ text: 'Sign in with Google' })
+
+// 4. Fill Google credentials
+browser_fill_form({
+  fields: [
+    { target: 'Email or phone', name: 'email', type: 'textbox', value: 'test@gmail.com' }
+  ]
+})
+browser_click({ target: 'Next button' })
+
+// 5. Handle consent
+browser_wait_for({ text: 'wants to access your Google Account' })
+browser_click({ target: 'Allow button' })
+
+// 6. Redirected back — verify connection
+browser_wait_for({ text: 'Connected' })</code></pre>
+
+  <h2>Tips for Reliable MCP Automation</h2>
+
+  <p>After running thousands of MCP-based tests, we have compiled practical tips that improve reliability. Always take a snapshot before interacting with elements — the page may have changed since your last snapshot. Use <code>browser_wait_for</code> before assertions to handle async loading. Prefer <code>browser_fill_form</code> over individual <code>browser_type</code> calls for multi-field forms.</p>
+
+  <p>When elements have ambiguous descriptions (multiple "Submit" buttons on a page), add context from parent elements: <code>Submit button in the payment form</code> rather than just <code>Submit button</code>.</p>
+
+  <div class="back-link">
+    <a href="../blog.html">&larr; Back to all posts</a>
+  </div>
+</body>
+</html>
